@@ -1,0 +1,19 @@
+[package]
+name = "master-of-game-gui"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "master_of_game_gui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nim_gui"
+path = "src/main.rs"
+
+[dependencies]
+master-of-game-core = { path = "../core" }
+leptos = { version = "0.7", features = ["csr"] }
+rand = { version = "0.8", features = ["small_rng"] }
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = "0.1"

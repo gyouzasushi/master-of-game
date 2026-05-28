@@ -3,11 +3,11 @@
 //! 引数なしで実行すると P1 が人間入力、P2 がランダム AI になる。引数に `random` を渡すと
 //! 両者ランダムで自動対局する。
 
-use master_of_game::game::Outcome;
-use master_of_game::games::nim::{Nim, NimAction, NimState};
-use master_of_game::observer::Observer;
-use master_of_game::simulator::run;
-use master_of_game::strategy::{ManualStrategy, Prompt, RandomStrategy};
+use master_of_game_core::game::Outcome;
+use master_of_game_core::games::nim::{Nim, NimAction, NimState};
+use master_of_game_core::observer::Observer;
+use master_of_game_core::simulator::run;
+use master_of_game_core::strategy::{ManualStrategy, Prompt, RandomStrategy};
 use std::io::{self, BufRead, Write};
 
 struct CuiObserver;

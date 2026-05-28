@@ -1,0 +1,12 @@
+[package]
+name = "master-of-game-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nim_cli"
+path = "src/main.rs"
+
+[dependencies]
+master-of-game-core = { path = "../core" }
+rand = "0.8"

@@ -1,4 +1,4 @@
-name: Deploy docs to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -22,8 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        run: rustup update stable && rustup default stable
+      - name: Setup Rust + wasm target
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -31,16 +34,29 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
 
-      - name: Build docs
-        run: cargo doc --no-deps
+      - name: Install trunk
+        run: |
+          which trunk || cargo install --locked trunk
+
+      - name: Build rustdoc
+        run: cargo doc --no-deps -p master-of-game-core
         env:
           RUSTDOCFLAGS: -D warnings
 
-      - name: Add redirect index.html
-        run: echo '<meta http-equiv="refresh" content="0; url=master_of_game/index.html">' > target/doc/index.html
+      - name: Build GUI (wasm)
+        working-directory: gui
+        run: trunk build --release --public-url "/${{ github.event.repository.name }}/"
+
+      - name: Assemble dist
+        run: |
+          mkdir -p dist
+          cp -r gui/dist/* dist/
+          mkdir -p dist/docs
+          cp -r target/doc/* dist/docs/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -50,7 +66,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/doc
+          path: dist
 
   deploy:
     needs: build

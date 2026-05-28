@@ -1,0 +1,11 @@
+[package]
+name = "master-of-game-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "master_of_game_core"
+path = "src/lib.rs"
+
+[dependencies]
+rand = "0.8"
