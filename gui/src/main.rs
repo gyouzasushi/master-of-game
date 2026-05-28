@@ -7,7 +7,7 @@ use leptos::prelude::*;
 use master_of_game_core::async_strategy::{into_async, AsyncStrategy};
 use master_of_game_core::games::nim::{Nim, NimAction, NimState};
 use master_of_game_core::strategy::RandomStrategy;
-use master_of_game_gui::{run_in_browser, GuiView, InputChannel, ManualGui};
+use master_of_game_gui::{run_in_browser, GuiView, Input, ManualGui};
 
 struct NimView;
 
@@ -44,12 +44,12 @@ impl GuiView<Nim> for NimView {
 }
 
 fn main() {
-    // 入力チャンネルを1つ作り、Human プレイヤーには複製を渡す。
-    // (両方 Human でも turn-based なので同時 await されない)
-    let input: InputChannel<NimAction> = InputChannel::new();
+    // 画面 → 戦略 の入力チャンネル。
+    // Human プレイヤーには &input から ManualGui を作って渡す。
+    let input: Input<NimAction> = Input::new();
 
     // P1=人間, P2=ランダムAI
-    let p1: Box<dyn AsyncStrategy<Nim>> = Box::new(ManualGui::new(input.clone()));
+    let p1: Box<dyn AsyncStrategy<Nim>> = Box::new(ManualGui::new(&input));
     let p2: Box<dyn AsyncStrategy<Nim>> = into_async(RandomStrategy);
 
     run_in_browser::<Nim, _>(NimView, p1, p2, input);
