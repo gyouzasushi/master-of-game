@@ -1,3 +1,8 @@
+//! Nim を標準入出力で対戦するための CLI。
+//!
+//! 引数なしで実行すると P1 が人間入力、P2 がランダム AI になる。引数に `random` を渡すと
+//! 両者ランダムで自動対局する。
+
 use master_of_game::game::Outcome;
 use master_of_game::games::nim::{Nim, NimAction, NimState};
 use master_of_game::observer::Observer;

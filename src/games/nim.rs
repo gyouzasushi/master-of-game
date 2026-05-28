@@ -1,18 +1,30 @@
+//! Nim の実装例。
+//!
+//! 複数の山を並べ、各手番でいずれか1つの山から1個以上を取る。最後の1個を取った側の勝ち
+//! （標準ルール、misère ではない）。[`Nim::initial_state`] が返す初期局面は `[3, 4, 5]`。
+
 use crate::game::{Game, Outcome, Player};
 use rand::RngCore;
 
+/// Nim の状態。
 #[derive(Debug, Clone)]
 pub struct NimState {
+    /// 各山の残り個数。
     pub heaps: Vec<u32>,
+    /// 次に手を打つ側。
     pub next: Player,
 }
 
+/// Nim の行動: 山を1つ選び、1個以上の個数を取る。
 #[derive(Debug, Clone, Copy)]
 pub struct NimAction {
+    /// 取る対象の山の添字（`0 <= heap < heaps.len()`）。
     pub heap: usize,
+    /// 取る個数（`1 <= count <= heaps[heap]`）。
     pub count: u32,
 }
 
+/// Nim を表すゼロサイズの型。[`Game`] の実装を持つ。
 pub struct Nim;
 
 impl Game for Nim {
