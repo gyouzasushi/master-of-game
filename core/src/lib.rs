@@ -37,6 +37,7 @@
 //! [`ManualStrategy`]: strategy::ManualStrategy
 //! [`Observer`]: observer::Observer
 
+pub mod async_strategy;
 pub mod game;
 pub mod games;
 pub mod observer;

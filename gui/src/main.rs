@@ -1,12 +1,13 @@
 //! Nim の Leptos GUI バイナリ。
 //!
 //! `trunk serve` で起動するとブラウザで対戦できる。
-//! 対戦の組合せは `main` で `PlayerKind` を切り替えて指定する。
+//! main で各プレイヤーに `ManualGui` (入力) か AI 戦略を割り当てる。
 
 use leptos::prelude::*;
+use master_of_game_core::async_strategy::{into_async, AsyncStrategy};
 use master_of_game_core::games::nim::{Nim, NimAction, NimState};
 use master_of_game_core::strategy::RandomStrategy;
-use master_of_game_gui::{run_in_browser, GuiView, PlayerKind};
+use master_of_game_gui::{run_in_browser, GuiView, InputChannel, ManualGui};
 
 struct NimView;
 
@@ -43,12 +44,13 @@ impl GuiView<Nim> for NimView {
 }
 
 fn main() {
-    // 組合せはここで決める。任意に書き換え可:
-    //   PlayerKind::Human                                 — 入力
-    //   PlayerKind::Ai(Box::new(RandomStrategy))          — ランダムAI
-    run_in_browser::<Nim, _>(
-        NimView,
-        PlayerKind::Human,
-        PlayerKind::Ai(Box::new(RandomStrategy)),
-    );
+    // 入力チャンネルを1つ作り、Human プレイヤーには複製を渡す。
+    // (両方 Human でも turn-based なので同時 await されない)
+    let input: InputChannel<NimAction> = InputChannel::new();
+
+    // P1=人間, P2=ランダムAI
+    let p1: Box<dyn AsyncStrategy<Nim>> = Box::new(ManualGui::new(input.clone()));
+    let p2: Box<dyn AsyncStrategy<Nim>> = into_async(RandomStrategy);
+
+    run_in_browser::<Nim, _>(NimView, p1, p2, input);
 }
