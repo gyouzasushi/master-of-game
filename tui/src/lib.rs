@@ -1,14 +1,7 @@
-//! ratatui ベースの TUI runner。
+//! ratatui で動く TUI runner。
 //!
-//! [`TuiView`] を実装すれば、画面描画とキー入力解釈を1つの trait にまとめて与えられる。
-//! 既存の [`Strategy`](master_of_game_core::strategy::Strategy) /
-//! [`Observer`](master_of_game_core::observer::Observer) /
-//! [`Simulator::run`](master_of_game_core::simulator::run) がそのまま動く。
-//!
-//! - 描画は [`TuiObserver`] が `on_start` / `on_action` / `on_end` で `TuiView::render` を呼ぶ
-//! - 人間入力は [`ManualTui`] が `crossterm::event::read` を blocking で待ち、`TuiView::handle_key`
-//!   でアクションに翻訳する
-//! - 端末のセットアップ・後片付けは [`TuiApp`] が RAII で抱える
+//! ゲームごとに [`TuiView`] を実装すると、`simulator::run` の Strategy / Observer に
+//! [`ManualTui`] と [`TuiObserver`] として組み込める。端末ライフサイクルは [`TuiApp`] が抱える。
 
 use crossterm::event::{self, Event, KeyEvent};
 use crossterm::execute;
@@ -27,16 +20,15 @@ use std::io;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-/// 状態の描画とキー入力の解釈を1つにまとめた trait。
+/// 盤面の描画とキー入力の解釈。
 ///
-/// `render` は [`TuiObserver`] 経由で状態変化のたびに呼ばれ、
-/// `handle_key` は [`ManualTui`] からキーイベントごとに呼ばれて、
-/// アクションに翻訳できれば返す (`None` なら無視)。
+/// `render` は状態変化時に呼ばれる。`handle_key` はキー押下時に呼ばれ、アクションに
+/// 翻訳できれば返す。
 pub trait TuiView<G: Game> {
-    /// 現在の状態を描画する。
+    /// 状態を描画する。
     fn render(state: &G::State, legal: &[G::Action], frame: &mut Frame, area: Rect);
 
-    /// キーをアクションに翻訳する。翻訳不能なら `None`。
+    /// キーをアクションに翻訳する。該当なしは `None`。
     fn handle_key(
         state: &G::State,
         legal: &[G::Action],
@@ -46,10 +38,10 @@ pub trait TuiView<G: Game> {
 
 type SharedTerminal = Rc<RefCell<Terminal<CrosstermBackend<io::Stdout>>>>;
 
-/// 端末のセットアップ・後片付けを RAII で抱えるアプリ。
+/// 端末のライフサイクルを RAII で管理する。
 ///
-/// `Drop` で raw mode 解除と alternate screen 退場を行うので、main から戻るときに
-/// 自動で端末がきれいに戻る (panic 時も unwind 中に Drop が走る)。
+/// 構築時に raw mode と alternate screen に入り、`Drop` で抜ける。panic でも unwind 中に
+/// `Drop` が走るので、端末が raw mode のまま残らない。
 pub struct TuiApp<G: Game, V: TuiView<G>> {
     terminal: SharedTerminal,
     _marker: PhantomData<(fn() -> G, fn() -> V)>,
@@ -68,6 +60,8 @@ impl<G: Game, V: TuiView<G>> TuiApp<G, V> {
     }
 
     /// 1ゲームを最後まで進めて結果を返す。
+    ///
+    /// 内部で [`TuiObserver`] を立てて [`simulator::run`] に渡す。
     pub fn run(
         &mut self,
         p1: &mut dyn Strategy<G>,
@@ -87,7 +81,7 @@ impl<G: Game, V: TuiView<G>> Drop for TuiApp<G, V> {
     }
 }
 
-/// 状態変化のたびに [`TuiView::render`] で再描画する Observer。
+/// 状態変化のたびに [`TuiView::render`] を呼ぶ Observer。
 pub struct TuiObserver<G: Game, V: TuiView<G>> {
     terminal: SharedTerminal,
     _marker: PhantomData<(fn() -> G, fn() -> V)>,
@@ -121,12 +115,13 @@ impl<G: Game, V: TuiView<G>> Observer<G> for TuiObserver<G, V> {
 
     fn on_end(&mut self, state: &G::State, _outcome: &Outcome) {
         self.draw(state);
-        // 終局画面を一瞬見せてから後片付け
         std::thread::sleep(std::time::Duration::from_secs(2));
     }
 }
 
-/// キー入力を blocking で待ち、[`TuiView::handle_key`] で action に変換する Strategy。
+/// キー入力を blocking で待ち、[`TuiView::handle_key`] でアクションに翻訳する Strategy。
+///
+/// `crossterm::event::read` で待機する。
 pub struct ManualTui<G: Game, V: TuiView<G>> {
     _marker: PhantomData<(fn() -> G, fn() -> V)>,
 }

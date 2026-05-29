@@ -1,7 +1,6 @@
-//! Nim を TUI で対戦するバイナリ。
+//! Nim を TUI で遊ぶバイナリ。
 //!
-//! 起動すると alternate screen に切り替わり、ratatui で盤面を描画する。
-//! 数字キー (1-9) で合法手を選択。
+//! 数字キー (1-9) で合法手を選ぶ。
 
 use crossterm::event::{KeyCode, KeyEvent};
 use master_of_game_core::games::nim::{Nim, NimAction, NimState};
