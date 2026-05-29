@@ -16,10 +16,10 @@
 //! Nim をランダム同士で1局回す:
 //!
 //! ```
-//! use master_of_game::games::nim::Nim;
-//! use master_of_game::observer::Observer;
-//! use master_of_game::simulator::run;
-//! use master_of_game::strategy::RandomStrategy;
+//! use master_of_game_core::games::nim::Nim;
+//! use master_of_game_core::observer::Observer;
+//! use master_of_game_core::simulator::run;
+//! use master_of_game_core::strategy::RandomStrategy;
 //! use rand::SeedableRng;
 //!
 //! let mut rng = rand::rngs::StdRng::seed_from_u64(0);
@@ -37,7 +37,6 @@
 //! [`ManualStrategy`]: strategy::ManualStrategy
 //! [`Observer`]: observer::Observer
 
-pub mod async_strategy;
 pub mod game;
 pub mod games;
 pub mod observer;
