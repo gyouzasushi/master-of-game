@@ -1,8 +1,10 @@
 //! Nim を TUI で遊ぶバイナリ。
 //!
 //! 「山を選ぶ → 取る個数を選ぶ」の2段階。矢印キーで操作、Enter で次へ、Esc で戻る。
+//! 終局後は任意キーで終了。
 
 use crossterm::event::{KeyCode, KeyEvent};
+use master_of_game_core::game::{Game, Outcome, Player};
 use master_of_game_core::games::nim::{Nim, NimAction, NimState};
 use master_of_game_core::strategy::RandomStrategy;
 use master_of_game_tui::{TuiApp, TuiView};
@@ -42,6 +44,14 @@ impl NimTuiView {
     }
 }
 
+fn outcome_label(outcome: &Outcome) -> String {
+    match outcome {
+        Outcome::Win(Player::P1) => "P1 (あなた) の勝ち!".to_string(),
+        Outcome::Win(Player::P2) => "P2 (ランダムAI) の勝ち".to_string(),
+        Outcome::Draw => "引き分け".to_string(),
+    }
+}
+
 impl TuiView<Nim> for NimTuiView {
     fn render(&self, state: &NimState, _legal: &[NimAction], frame: &mut Frame, area: Rect) {
         let chunks = Layout::default()
@@ -53,8 +63,14 @@ impl TuiView<Nim> for NimTuiView {
             ])
             .split(area);
 
+        let over = Nim::outcome(state);
+
         // ヘッダ
-        let header = Paragraph::new(format!("Nim — {:?} の手番", state.next))
+        let header_text = match &over {
+            Some(o) => format!("ゲーム終了 — {}", outcome_label(o)),
+            None => format!("Nim — {:?} の手番", state.next),
+        };
+        let header = Paragraph::new(header_text)
             .block(Block::default().borders(Borders::ALL));
         frame.render_widget(header, chunks[0]);
 
@@ -63,9 +79,13 @@ impl TuiView<Nim> for NimTuiView {
             Mode::ChoosingHeap => self.valid_heap(state),
             Mode::ChoosingCount { heap, .. } => *heap,
         };
-        let preview_count = match &self.mode {
-            Mode::ChoosingCount { count, .. } => Some(*count as usize),
-            _ => None,
+        let preview_count = if over.is_some() {
+            None
+        } else {
+            match &self.mode {
+                Mode::ChoosingCount { count, .. } => Some(*count as usize),
+                _ => None,
+            }
         };
 
         let lines: Vec<Line> = state
@@ -73,7 +93,7 @@ impl TuiView<Nim> for NimTuiView {
             .iter()
             .enumerate()
             .map(|(i, &n)| {
-                let highlight = i == cur_heap;
+                let highlight = over.is_none() && i == cur_heap;
                 let marker = if highlight { "▶ " } else { "  " };
                 let mut spans = vec![
                     Span::styled(
@@ -112,14 +132,18 @@ impl TuiView<Nim> for NimTuiView {
         frame.render_widget(board, chunks[1]);
 
         // 入力ガイド
-        let status = match &self.mode {
-            Mode::ChoosingHeap => Paragraph::new(vec![
-                Line::from("↑↓ で山を選択 / Enter で個数選択へ"),
-            ]),
-            Mode::ChoosingCount { heap, count } => Paragraph::new(vec![
-                Line::from(format!("heap {} から {} 個取る", heap, count)),
-                Line::from("↑↓ で個数 / Enter で確定 / Esc で戻る"),
-            ]),
+        let status = if over.is_some() {
+            Paragraph::new("任意キーで終了")
+        } else {
+            match &self.mode {
+                Mode::ChoosingHeap => Paragraph::new(vec![Line::from(
+                    "↑↓ で山を選択 / Enter で個数選択へ",
+                )]),
+                Mode::ChoosingCount { heap, count } => Paragraph::new(vec![
+                    Line::from(format!("heap {} から {} 個取る", heap, count)),
+                    Line::from("↑↓ で個数 / Enter で確定 / Esc で戻る"),
+                ]),
+            }
         };
         frame.render_widget(
             status.block(Block::default().borders(Borders::ALL)),
@@ -207,12 +231,9 @@ impl TuiView<Nim> for NimTuiView {
 }
 
 fn main() -> io::Result<()> {
-    let outcome = {
-        let mut app = TuiApp::<Nim, NimTuiView>::new(NimTuiView::new())?;
-        let mut p1 = app.manual();
-        let mut p2 = RandomStrategy;
-        app.run(&mut p1, &mut p2)
-    };
-    println!("Result: {:?}", outcome);
+    let mut app = TuiApp::<Nim, NimTuiView>::new(NimTuiView::new())?;
+    let mut p1 = app.manual();
+    let mut p2 = RandomStrategy;
+    app.run(&mut p1, &mut p2);
     Ok(())
 }

@@ -124,7 +124,14 @@ impl<G: Game, V: TuiView<G>> Observer<G> for TuiObserver<G, V> {
     }
     fn on_end(&mut self, state: &G::State, _outcome: &Outcome) {
         draw::<G, V>(&self.view, &self.terminal, state);
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        // 結果を確認できるよう、任意キーで戻るまで待つ
+        loop {
+            if let Ok(Event::Key(key)) = event::read() {
+                if key.kind == KeyEventKind::Press {
+                    break;
+                }
+            }
+        }
     }
 }
 
